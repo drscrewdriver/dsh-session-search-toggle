@@ -13,7 +13,16 @@
  * The route is browser-trust fenced exactly like dsh-history's `/history/api`.
  */
 import type { Context } from 'cordis'
+import z from '@deepseek-ai/schemastery'
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import {
+  DEFAULT_CONFIG,
+  SWITCH_SEARCH_SETTINGS_NAMESPACE,
+  type SwitchSearchConfig,
+} from './config.ts'
+
+export { DEFAULT_CONFIG, SWITCH_SEARCH_SETTINGS_NAMESPACE } from './config.ts'
+export type { SwitchSearchConfig } from './config.ts'
 
 /** The webServer service face this plugin uses (structural mirror). */
 interface SwitchWebServer {
@@ -105,6 +114,59 @@ export const name = 'dsh-switch-search'
 
 /** Services required before mounting: the web server routes and the trust list. */
 export const inject = ['webServer', 'webRuntime']
+
+/** Composition-entry schema: what a dsh profile may configure at assembly time. */
+export const Config: z<SwitchSearchConfig> = z.object({
+  enabled: z.boolean().default(true),
+  defaultMode: z.union(['title', 'content']).default('title'),
+})
+
+/**
+ * Minimal face of the dsh `settings` service (typed locally — the plugin must
+ * NOT value-import the official `@deepseek-ai/dsh-settings` package).
+ */
+interface SettingsScopeLike {
+  get(): unknown
+  watch(callback: () => void): () => void
+}
+interface SettingsServiceLike {
+  register(ns: string, schema: unknown, options?: { base?: unknown }): SettingsScopeLike
+}
+interface SettingsAwareCtx {
+  inject(deps: readonly string[], fn: (sctx: {
+    settings: SettingsServiceLike
+    effect(cleanup: () => (() => void) | void, label?: string): void
+  }) => void): void
+}
+
+/**
+ * Inline equivalent of the official `installSettingsSection` helper: register
+ * the namespace through the `settings` service, layer the composition entry as
+ * `base`, and keep the runtime source live. Same pattern as dsh-thinking-levels.
+ * @param ctx - host context carrying the settings service.
+ * @param ns - settings namespace to register.
+ * @param schema - schemastery schema resolving the namespace value.
+ * @param entry - composition-entry config used as the `base` layer.
+ * @param hooks - source sink and change notification.
+ */
+function installSettingsSection<T>(
+  ctx: Context,
+  ns: string,
+  schema: unknown,
+  entry: T,
+  hooks: { setSource: (source: () => T) => void; onChange: () => void },
+): void {
+  ;(ctx as unknown as SettingsAwareCtx).inject(['settings'], (sctx) => {
+    const scope = sctx.settings.register(ns, schema, { base: entry })
+    hooks.setSource(() => scope.get() as T)
+    hooks.onChange()
+    sctx.effect(() => () => {
+      hooks.setSource(() => entry)
+      hooks.onChange()
+    })
+    scope.watch(() => hooks.onChange())
+  })
+}
 
 /** Body size bound of one JSON request (defense against unbounded reads). */
 const MAX_BODY_BYTES = 1 << 20
@@ -301,6 +363,35 @@ async function contentSearch(
 }
 
 /**
+ * search-status: probe whether the host full-text index is reachable. The
+ * shipped DSH bundle ships `openAt: never` (content search disabled); this
+ * tells the panel whether 内容搜索 can work so it can render a setup hint
+ * instead of a bare failure.
+ */
+async function searchStatus(
+  ctx: Context,
+): Promise<{ ok: boolean; available?: boolean; reason?: string; error?: string }> {
+  const sessionQuery = ctx.get('sessionQuery') as SwitchSessionQuery | undefined
+  if (sessionQuery === undefined) {
+    return { ok: true, available: false, reason: 'unavailable' }
+  }
+  try {
+    // A disabled index throws SESSION_QUERY_SEARCH_DISABLED before any work.
+    await sessionQuery.searchSessions({ query: 'probe', limit: 1 })
+    return { ok: true, available: true }
+  } catch (err) {
+    const message = String(err instanceof Error ? err.message : err)
+    const disabled = /SEARCH_DISABLED|disabled/u.test(message)
+    return {
+      ok: true,
+      available: false,
+      reason: disabled ? 'disabled' : 'unavailable',
+      error: message,
+    }
+  }
+}
+
+/**
  * Plugin body: mount the fenced /switch-search/api route.
  * @param ctx - host plugin context (webServer, webRuntime).
  */
@@ -327,17 +418,31 @@ export function apply(ctx: Context): void {
       }
       try {
         const payload = await readJsonBody(req)
-        let result: { ok: boolean; items?: unknown[]; error?: string }
-        if (method === 'list-sessions') result = await listSessions(ctx)
-        else if (method === 'content-search') result = await contentSearch(ctx, payload)
-        else {
-          writeJson(res, 404, { ok: false, error: `unknown switch-search API method "${method}"` })
+        if (method === 'list-sessions') {
+          writeJson(res, 200, await listSessions(ctx))
           return
         }
-        writeJson(res, result.ok ? 200 : 400, result)
+        if (method === 'content-search') {
+          writeJson(res, 200, await contentSearch(ctx, payload))
+          return
+        }
+        if (method === 'search-status') {
+          writeJson(res, 200, await searchStatus(ctx))
+          return
+        }
+        writeJson(res, 404, { ok: false, error: `unknown switch-search API method "${method}"` })
       } catch (err) {
         writeJson(res, 400, { ok: false, error: err instanceof Error ? err.message : String(err) })
       }
     },
   }), 'dsh-switch-search: /switch-search/api route')
+
+  // Register the runtime-adjustable settings namespace (the composition entry
+  // is the base; the settings section layers on top). The panel and the
+  // settings row read `current()` through the same source.
+  let current: () => SwitchSearchConfig = () => DEFAULT_CONFIG
+  installSettingsSection(ctx, SWITCH_SEARCH_SETTINGS_NAMESPACE, Config, DEFAULT_CONFIG, {
+    setSource: (source) => { current = source },
+    onChange: () => {},
+  })
 }

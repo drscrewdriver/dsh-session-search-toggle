@@ -14,22 +14,41 @@
 import { createElement, useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
 import { createPortal } from 'react-dom'
 import type { Context } from 'cordis'
+import {
+  defineStore,
+  type SettingsScopeSnapshot,
+} from '@deepseek-ai/dsh-client-runtime/client'
+import { DEFAULT_CONFIG, SWITCH_SEARCH_SETTINGS_NAMESPACE, type SwitchSearchConfig } from '../config.ts'
 
 /** ------------------------------------------------------------------ types */
 
 /** The client slots service face (structural subset used here). */
 interface SwitchSlotsService {
-  inject(key: string, callback: () => () => void): () => void
+  inject(key: string, callback: () => () => void, label?: string): () => void
   register(options: {
     name: string
     id?: string
+    key?: string
     order?: number
-  }, component: (props: SwitchFooterProps) => ReactElement): () => void
+    store?: unknown
+    locale?: string
+    inject?: (actions: unknown) => unknown
+  }, component: unknown): () => void
 }
 
 /** The client sessions service face: open a session from a search result. */
 interface SwitchSessionsService {
   open(id: string): void
+}
+
+/** The client settings-scope service face (structural subset). */
+interface SwitchSettingsScope<T> {
+  bind<T>(spec: { namespace: string }): SwitchScopeLike<T>
+}
+interface SwitchScopeLike<T> {
+  getSnapshot(): SettingsScopeSnapshot<T>
+  subscribe(listener: () => void): () => void
+  set(field: string, value: unknown): Promise<void>
 }
 
 /** One session listed for the title-search corpus. */
@@ -66,10 +85,62 @@ interface SwitchFooterProps {
   wide: boolean
 }
 
+/** Local mirror of the settings namespace the General row edits. */
+export interface SwitchSearchSettingsState {
+  enabled: boolean
+  defaultMode: SwitchSearchConfig['defaultMode']
+  /** Namespace revision fencing the sync (skips stale snapshots). */
+  revision: number
+  /** Whether the Host document accepts writes. */
+  writable: boolean
+  /** Namespace not exposed to this client (row renders the unavailable note). */
+  unavailable: boolean
+}
+
+/** Write face the settings row receives from the inject factory. */
+export interface SwitchSearchSettingsInjected {
+  setEnabled: (value: boolean) => void
+  setDefaultMode: (value: SwitchSearchConfig['defaultMode']) => void
+}
+
+/** The settings store: mirror of the namespace section plus the write set. */
+export const switchSearchStore = defineStore({
+  init: (): SwitchSearchSettingsState => ({
+    enabled: DEFAULT_CONFIG.enabled,
+    defaultMode: DEFAULT_CONFIG.defaultMode,
+    revision: -1,
+    writable: false,
+    unavailable: false,
+  }),
+  actions: {
+    sync(d: SwitchSearchSettingsState, snap: SettingsScopeSnapshot<SwitchSearchConfig>): void {
+      if (snap.revision !== undefined && snap.revision <= d.revision) return
+      const value = snap.value as Partial<SwitchSearchConfig> | undefined
+      if (value?.enabled !== undefined) d.enabled = value.enabled
+      if (value?.defaultMode !== undefined) d.defaultMode = value.defaultMode
+      if (snap.revision !== undefined) d.revision = snap.revision
+      d.writable = snap.writable
+      d.unavailable = snap.status === 'unavailable'
+    },
+  },
+})
+
+/** Baked store actions handed to the inject factory (the `sync` write set;
+ *  the draft parameter is bound by the framework, so consumers pass only snap). */
+export type SwitchSearchActions = {
+  sync: (snap: SettingsScopeSnapshot<SwitchSearchConfig>) => void
+}
+
+/** The store handle type, for props derivation. */
+export type SwitchSearchStore = {
+  create: () => SwitchSearchSettingsState
+}
+
 declare module 'cordis' {
   interface Context {
     slots: SwitchSlotsService
     sessions?: SwitchSessionsService
+    settingsScope?: SwitchSettingsScope<SwitchSearchConfig>
   }
 }
 
@@ -105,6 +176,24 @@ const CSS = `
 .dsws_error{color:var(--dsw-alias-state-error-primary);padding:8px;font-size:12px;line-height:18px}
 .dsws_empty{color:var(--dsw-alias-label-tertiary);padding:10px 8px 8px;font-size:12px;line-height:18px}
 .dsws_backdrop{position:fixed;inset:0;z-index:2147482999;background:transparent}
+.dsws_setRoot{display:flex;flex-direction:column;width:100%}
+.dsws_setRow{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--dsw-alias-border-l2)}
+.dsws_setRow:last-child{border-bottom:none}
+.dsws_setText{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.dsws_setTitle{color:var(--dsw-alias-label-primary);font-size:14px;line-height:22px}
+.dsws_setDesc{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px}
+.dsws_switch{position:relative;width:40px;height:22px;flex:none}
+.dsws_switch>input{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:pointer}
+.dsws_switch>input:disabled{cursor:not-allowed}
+.dsws_switchTrack{position:absolute;inset:0;background:var(--dsw-alias-bg-module-platform);border:1px solid var(--dsw-alias-border-l2);border-radius:11px;transition:background .15s ease,border-color .15s ease;pointer-events:none}
+.dsws_switch>input:checked+.dsws_switchTrack{background:var(--dsw-alias-state-business-primary);border-color:var(--dsw-alias-state-business-primary)}
+.dsws_switchThumb{position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .15s ease}
+.dsws_switch>input:checked+.dsws_switchTrack>.dsws_switchThumb{transform:translateX(18px)}
+.dsws_seg{display:inline-flex;align-items:center;gap:2px;background:var(--dsw-alias-interactive-bg-hover);border-radius:8px;padding:2px;flex:none}
+.dsws_segBtn{height:24px;border:none;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;border-radius:6px;padding:0 10px;font-size:12px;font-weight:500;line-height:20px}
+.dsws_segBtn:hover{color:var(--dsw-alias-label-primary)}
+.dsws_segBtn:disabled{cursor:not-allowed;opacity:.5}
+.dsws_segBtnActive{background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);box-shadow:0 1px 2px rgba(0,0,0,.08)}
 `
 
 /** Inject the plugin stylesheet once per activation (removed on disposal). */
@@ -177,10 +266,23 @@ function SwitchPanel({
     status: 'idle',
     items: [],
   })
+  // Content-search availability probe (the shipped DSH bundle ships openAt: never).
+  const [searchStatus, setSearchStatus] = useState<{ available: boolean | null; reason?: string }>({ available: null })
   const inputRef = useRef<HTMLInputElement | null>(null)
   const listRef = useRef<HTMLUListElement | null>(null)
 
   const normalized = query.trim().toLowerCase()
+
+  // Probe the host full-text availability once on open.
+  useEffect(() => {
+    let cancelled = false
+    callHost<{ available: boolean; reason?: string }>('search-status', {}).then((res) => {
+      if (cancelled) return
+      const item = res.ok ? res.items[0] : undefined
+      setSearchStatus({ available: item?.available ?? false, reason: item?.reason })
+    })
+    return () => { cancelled = true }
+  }, [])
 
   // Load the title-search corpus once on open.
   useEffect(() => {
@@ -274,7 +376,14 @@ function SwitchPanel({
       ])))))
     }
   } else {
-    if (activeContent.status === 'loading') {
+    if (searchStatus.available === false) {
+      children.push(createElement('div', {
+        key: 'unavailable',
+        className: 'dsws_error',
+      }, searchStatus.reason === 'disabled'
+        ? '内容搜索未启用：当前 DSH 配置关闭了全文索引（openAt: never）。请在 profile 的 cordis.patch.yml 中将 session-query-sqlite 的 openAt 改为 first-search 后重启。'
+        : '内容搜索暂不可用：Host 未提供 sessionQuery 服务。'))
+    } else if (activeContent.status === 'loading') {
       children.push(createElement('div', { key: 'loading', className: 'dsws_status' }, '正在搜索会话内容…'))
     } else if (activeContent.status === 'error') {
       children.push(createElement('div', { key: 'error', className: 'dsws_error' }, `内容搜索失败：${activeContent.error ?? '未知错误'}`))
@@ -435,14 +544,79 @@ function searchIcon(): ReactElement {
   }))
 }
 
+/** ------------------------------------------------------------------ settings row */
+
+/** The General settings row: enable the plugin and pick the panel default mode. */
+function SwitchSettingsRow(props: {
+  t?: unknown
+  useStore: <T>(selector: (state: SwitchSearchSettingsState) => T) => T
+  setEnabled: (value: boolean) => void
+  setDefaultMode: (value: SwitchSearchConfig['defaultMode']) => void
+}): ReactElement {
+  const enabled = props.useStore((state) => state.enabled)
+  const defaultMode = props.useStore((state) => state.defaultMode)
+  const writable = props.useStore((state) => state.writable)
+  const unavailable = props.useStore((state) => state.unavailable)
+  const children: ReactElement[] = []
+  if (unavailable) {
+    children.push(createElement('div', {
+      key: 'unavailable',
+      className: 'dsws_setRow',
+    }, createElement('span', { key: 't', className: 'dsws_setTitle' }, '会话搜索设置不可用：Host 未挂载 settings 命名空间。')))
+    return createElement('div', { className: 'dsws_setRoot' }, children)
+  }
+  children.push(createElement('div', {
+    key: 'enable',
+    className: 'dsws_setRow',
+  }, [
+    createElement('div', { key: 'text', className: 'dsws_setText' }, [
+      createElement('span', { key: 't', className: 'dsws_setTitle' }, '启用会话搜索'),
+      createElement('span', { key: 'd', className: 'dsws_setDesc' }, '在侧边栏底部显示"搜索"入口。'),
+    ]),
+    createElement('label', { key: 'sw', className: 'dsws_switch' }, [
+      createElement('input', {
+        type: 'checkbox',
+        checked: enabled,
+        disabled: !writable,
+        onChange: (e: { target: { checked: boolean } }) => props.setEnabled(e.target.checked),
+      }),
+      createElement('span', { key: 'track', className: 'dsws_switchTrack' }, createElement('span', { className: 'dsws_switchThumb' })),
+    ]),
+  ]))
+  children.push(createElement('div', {
+    key: 'mode',
+    className: 'dsws_setRow',
+  }, [
+    createElement('div', { key: 'text', className: 'dsws_setText' }, [
+      createElement('span', { key: 't', className: 'dsws_setTitle' }, '默认搜索模式'),
+      createElement('span', { key: 'd', className: 'dsws_setDesc' }, '面板打开时默认进入标题搜索还是内容搜索。'),
+    ]),
+    createElement('div', { key: 'seg', className: 'dsws_seg', role: 'group', 'aria-label': '默认搜索模式' }, [
+      (['title', 'content'] as const).map(mode => createElement('button', {
+        key: mode,
+        type: 'button',
+        className: `dsws_segBtn${defaultMode === mode ? ' dsws_segBtnActive' : ''}`,
+        'aria-pressed': defaultMode === mode,
+        disabled: !writable,
+        onClick: () => { props.setDefaultMode(mode) },
+      }, mode === 'title' ? '标题' : '内容')),
+    ]),
+  ]))
+  if (!writable) {
+    children.push(createElement('div', { key: 'ro', className: 'dsws_setDesc' }, '当前为只读（Host 未接受写入）。'))
+  }
+  return createElement('div', { className: 'dsws_setRoot' }, children)
+}
+
 /** ------------------------------------------------------------------ plugin */
 
-/** Services required before mounting: the slot registry. */
+/** Services required before mounting: the slot registry, sessions, and settings scope. */
 export const inject = ['slots']
 
 /**
- * Client plugin body: inject the stylesheet and register the footer entry.
- * @param ctx - client plugin context (slots, sessions).
+ * Client plugin body: inject the stylesheet and register the footer entry
+ * plus the General settings row.
+ * @param ctx - client plugin context (slots, sessions, settingsScope).
  */
 export function apply(ctx: Context): void {
   ctx.effect(() => injectStyles(), 'dsh-switch-search: stylesheet')
@@ -452,8 +626,34 @@ export function apply(ctx: Context): void {
   const open = sessions === undefined || typeof sessions.open !== 'function'
     ? (): void => {}
     : (sessionId: string): void => { sessions.open(sessionId) }
+
   slots.inject('sidebar.footer.action', () => slots.register(
     { name: 'sidebar.footer.action', id: 'dsh-switch-search', order: 10 },
     (props: SwitchFooterProps) => createElement(SwitchFooter, { ...props, open }),
   ))
+
+  // The General settings row mirrors the switch-search namespace section.
+  const settingsScope = ctx.get('settingsScope') as SwitchSettingsScope<SwitchSearchConfig> | undefined
+  if (settingsScope !== undefined) {
+    const scope = settingsScope.bind<SwitchSearchConfig>({ namespace: SWITCH_SEARCH_SETTINGS_NAMESPACE })
+    let bound: SwitchSearchActions | undefined
+    const push = (snap: SettingsScopeSnapshot<SwitchSearchConfig>): void => {
+      bound?.sync(snap)
+    }
+    slots.inject('settings.general.item', () => slots.register({
+      name: 'settings.general.item',
+      key: SWITCH_SEARCH_SETTINGS_NAMESPACE,
+      order: 100,
+      store: switchSearchStore,
+      inject: (actions: unknown) => {
+        bound = actions as SwitchSearchActions
+        push(scope.getSnapshot())
+        return {
+          setEnabled: (value: boolean): void => void scope.set('enabled', value),
+          setDefaultMode: (value: SwitchSearchConfig['defaultMode']): void => void scope.set('defaultMode', value),
+        } satisfies SwitchSearchSettingsInjected
+      },
+    }, SwitchSettingsRow), 'dsh-switch-search: general settings row')
+    ctx.effect(() => scope.subscribe(() => push(scope.getSnapshot())), 'dsh-switch-search: settings watch')
+  }
 }
