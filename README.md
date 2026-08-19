@@ -1,40 +1,87 @@
 # dsh-switch-search
 
-DSH web 侧边栏会话搜索增强插件：在侧边栏底部新增 **"搜索"** 入口，浮层面板内提供 **标题搜索 ↔ 内容搜索** 一键切换。
+[English](README.en.md) | 中文
 
-- **标题模式**：列出全部会话（标题 + 工作目录 + 时间），按标题/目录子串实时过滤。
-- **内容模式**：FTS5 全文搜索会话消息内容，结果按**会话聚合**——每行显示该会话的**标题**和**最强命中片段**，点击即打开对应会话。
+DSH web 侧边栏会话搜索增强插件：在侧边栏底部新增 **"搜索"** 入口，浮层面板内提供 **标题搜索 ↔ 内容搜索** 一键切换，并按内容类型筛选。
+
+## 分支与功能
+
+本仓库维护两个分支，满足不同阶段需求：
+
+| 分支 | 功能 | 适合 |
+|---|---|---|
+| `master` | 标题/内容双模式切换 + 内容按会话聚合展示（标题 + 命中片段） | 稳定基线 |
+| `feat/type-filter-search` | 在 master 基础上新增：内容类型筛选（全部/用户/回复/工具）+ 设置页索引进口（借鉴 thinking-levels 配置模式 + 索引可用性探测） | 探索类型筛选与索引入口 |
+
+两条分支均包含完整的 `lib/` 构建产物，可直接安装。
 
 ## 功能
 
-| 模式 | 数据源 | 结果形态 |
-|---|---|---|
-| 标题 | Host `list-sessions`（`sessionQuery.listSessions` + `readTitleSnapshots`） | 会话标题 + 工作目录 + 时间 |
-| 内容 | Host `content-search`（`sessionQuery.searchSessions` FTS5，当前 surface 的 user/assistant 消息） | 会话标题 + 最强命中片段 + 类型标签 |
+### 标题模式
+- 列出全部会话（标题 + 工作目录 + 时间），按标题/目录子串实时过滤。
+- 数据源：Host `list-sessions`（`sessionQuery.listSessions` + `readTitleSnapshots`）。
 
-- 内容搜索走 DSH 自带的 SQLite FTS5 索引，覆盖**未加载进窗口的历史/持久化会话**（live-preferred corpus）。
-- 浮层面板 portalled 到 `document.body`，不受侧边栏裁剪影响；点击结果打开会话并自动关闭。
-- `Esc` / 点击面板外关闭。
+### 内容模式（master + feat 分支）
+- FTS5 全文搜索会话消息内容，结果按**会话聚合**——每行显示该会话的**标题**和**最强命中片段**，点击即打开对应会话。
+- 数据源：Host `content-search`（`sessionQuery.searchSessions` FTS5）。
 
-## 安装
+### 类型筛选（仅 feat/type-filter-search）
+- 内容模式新增筛选 chip：**全部 / 用户 / 回复 / 工具**。
+- `tool` 档放开 `tool/call` 与 `tool/result` 事件进入 FTS5 结果，并显示"工具调用/工具结果"标签。
 
-**前置**：已装好 DSH（`dsh web` 能正常运行），且 `sessionQuery` 服务可用（默认 profile 即挂载 SQLite FTS5 索引）。
+### 设置页索引进口（仅 feat/type-filter-search）
+- 设置 → 通用新增 **"会话搜索"** 配置行（借鉴 dsh-thinking-levels 的 `settings.general.item` 模式）：
+  - 启用开关
+  - 默认搜索模式（标题 / 内容）
+- Host 侧 `search-status` 探测 `sessionQuery` 可用性，内容模式在索引未启用时给出具体配置指引。
+
+## ⚠️ 前置：启用内容搜索索引
+
+DSH 官方 bundle **默认关闭全文索引**（`session-query-sqlite` 的 `openAt: never`，见
+`deepseek-harness/packages/bundle/web-app/cordis.patch.yml`）。内容搜索要工作，需在你的
+profile 的 `cordis.patch.yml` 或 overlay 中覆盖：
+
+```yaml
+- id: session-query-sqlite
+  config:
+    path: /path/to/durable/session-search.db   # 可留 :memory:（重启后重建）
+    openAt: first-search                       # 或 startup
+```
+
+然后重启 DSH web。不开启时，插件内容模式会显示配置指引而非裸报错。
+
+## 安装（GitHub 直装）
+
+**前置**：已装好 DSH（`dsh web` 能正常运行），并已按上文启用内容搜索索引。
+
+### 稳定基线（master）
 
 ```bash
-# 1. 安装插件
-dsh plugin --profile web add dsh-switch-search@latest
+dsh plugin --profile web add github:drscrewdriver/dsh-switch-search#master
+```
 
-# 2. 自动重启服务生效
+### 类型筛选 + 索引进口（feat/type-filter-search）
+
+```bash
+dsh plugin --profile web add github:drscrewdriver/dsh-switch-search#feat/type-filter-search
+```
+
+> 直接使用仓库已提交的 `lib/` 构建产物，无需本地构建。
+
+### 重启生效
+
+```bash
 bash ~/.dsh/profiles/web/node_modules/dsh-switch-search/restart-dsh-web.sh
 ```
 
-装完侧边栏底部出现 **"搜索"** 按钮，点击展开带切换的面板。
+装完侧边栏底部出现 **"搜索"** 按钮；设置 → 通用出现 **"会话搜索"** 配置行（feat 分支）。
 
-### 从源码安装 / 开发调试
+## 从源码安装 / 开发调试
 
 ```bash
-git clone https://github.com/your-name/dsh-switch-search.git ~/Code/dsh-switch-search
-cd ~/Code/dsh-switch-search && pnpm install && pnpm build
+git clone git@github.com:drscrewdriver/dsh-switch-search.git ~/Code/dsh-switch-search
+cd ~/Code/dsh-switch-search && git checkout feat/type-filter-search   # 或 master
+pnpm install && pnpm build
 
 # 编辑 ~/.dsh/profiles/web/package.json 的 dependencies：
 #   "dsh-switch-search": "link:<克隆目录绝对路径>"
@@ -50,9 +97,10 @@ bash ~/Code/dsh-switch-search/restart-dsh-web.sh
 
 ## 实现说明
 
-- **Host 半**（`src/index.ts`）注册 fenced HTTP 路由 `/switch-search/api`（`list-sessions` / `content-search`），浏览器信任围栏与 DSH `/api` 网关一致（loopback Host 或 trustedHosts，拒绝 cross-site）。
-- **Client 半**（`src/client/index.ts`）注册 `sidebar.footer.action`（slot list，`order: 10`），渲染搜索入口 + portalled 浮层面板。
+- **Host 半**（`src/index.ts`）注册 fenced HTTP 路由 `/switch-search/api`（`list-sessions` / `content-search` / `search-status`），浏览器信任围栏与 DSH `/api` 网关一致（loopback Host 或 trustedHosts，拒绝 cross-site）。
+- **Client 半**（`src/client/index.ts`）注册 `sidebar.footer.action`（搜索入口）+ `settings.general.item`（设置行，feat 分支）。
 - 数据全部通过 `sessionQuery` 服务（live-preferred 语料库），不改 DSH 本体、不建派生库。
+- 配置模式借鉴 dsh-thinking-levels：host 半 `installSettingsSection` + schemastery `Config`，client 半 `defineStore` + `settingsScope.bind`，共享纯模块 `src/config.ts`（保持 client bundle 无 schemastery）。
 - `restart-dsh-web.sh` 随包分发（与 dsh-history 同款一键重启脚本）。
 
 ## License

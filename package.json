@@ -24,6 +24,7 @@
     "cordis.patch.yml",
     "dsh.plugin.json",
     "README.md",
+    "README.en.md",
     "LICENSE"
   ],
   "engines": {
