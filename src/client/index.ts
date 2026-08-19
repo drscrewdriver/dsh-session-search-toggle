@@ -50,6 +50,17 @@ interface HostContentHit {
   time: number
 }
 
+/** Coarse content-type filter carried to the host content-search. */
+type ContentType = 'all' | 'user' | 'reply' | 'tool'
+
+/** The coarse filter chips rendered above content results. */
+const CONTENT_TYPE_CHIPS: readonly { id: ContentType; label: string }[] = [
+  { id: 'all', label: '全部' },
+  { id: 'user', label: '用户' },
+  { id: 'reply', label: '回复' },
+  { id: 'tool', label: '工具' },
+]
+
 /** The footer-action owner share (structural subset). */
 interface SwitchFooterProps {
   wide: boolean
@@ -78,6 +89,10 @@ const CSS = `
 .dsws_search{flex:auto;min-width:0;height:30px;box-sizing:border-box;color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-base);border:1px solid var(--dsw-alias-border-l2);border-radius:8px;outline:none;padding:0 10px;font:inherit;font-size:13px;line-height:20px}
 .dsws_search:focus{border-color:var(--dsw-alias-state-business-primary)}
 .dsws_search::placeholder{color:var(--dsw-alias-label-caption)}
+.dsws_chips{display:flex;align-items:center;gap:6px;padding:8px 10px 0;flex:none}
+.dsws_chip{height:24px;box-sizing:border-box;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;border-radius:999px;padding:0 10px;font-size:12px;font-weight:500;line-height:22px;white-space:nowrap}
+.dsws_chip:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
+.dsws_chipActive{background:var(--dsw-alias-state-business-primary);border-color:var(--dsw-alias-state-business-primary);color:var(--dsw-alias-label-primary)}
 .dsws_list{max-height:min(50vh,420px);overflow-y:auto;margin:8px 0 0;padding:0 6px 8px;list-style:none}
 .dsws_row{box-sizing:border-box;border-radius:8px;width:100%;padding:7px 8px;cursor:pointer;text-align:left;border:none;background:transparent;color:var(--dsw-alias-label-primary);display:flex;flex-direction:column;gap:2px;min-width:0}
 .dsws_row:hover{background:var(--dsw-alias-interactive-bg-hover)}
@@ -154,6 +169,7 @@ function SwitchPanel({
 }): ReactElement {
   const [mode, setMode] = useState<'title' | 'content'>('title')
   const [query, setQuery] = useState('')
+  const [contentType, setContentType] = useState<ContentType>('all')
   const [sessions, setSessions] = useState<HostSessionItem[] | null>(null)
   const [sessionsError, setSessionsError] = useState<string | null>(null)
   const [content, setContent] = useState<{ query: string; status: 'idle' | 'loading' | 'ready' | 'error'; items: HostContentHit[]; error?: string }>({
@@ -185,18 +201,20 @@ function SwitchPanel({
       return
     }
     let cancelled = false
-    setContent(prev => ({ query: normalized, status: 'loading', items: prev.query === normalized ? prev.items : [] }))
+    const requestType: ContentType = contentType
+    const requestKey = `${normalized}\u0000${requestType}`
+    setContent(prev => ({ query: requestKey, status: 'loading', items: prev.query === requestKey ? prev.items : [] }))
     const timer = window.setTimeout(() => {
-      callHost<HostContentHit>('content-search', { query: normalized, limit: 50 }).then((res) => {
+      callHost<HostContentHit>('content-search', { query: normalized, limit: 50, types: requestType === 'all' ? undefined : [requestType] }).then((res) => {
         if (cancelled) return
-        setContent({ query: normalized, status: res.ok ? 'ready' : 'error', items: res.ok ? res.items : [], error: res.ok ? undefined : (res.error ?? '搜索失败') })
+        setContent({ query: requestKey, status: res.ok ? 'ready' : 'error', items: res.ok ? res.items : [], error: res.ok ? undefined : (res.error ?? '搜索失败') })
       })
     }, 250)
     return () => {
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [mode, normalized])
+  }, [mode, normalized, contentType])
 
   // Focus the input on open; reset mode on every open.
   useEffect(() => {
@@ -229,7 +247,8 @@ function SwitchPanel({
   if (sessionsError !== null) {
     children.push(createElement('div', { key: 'err', className: 'dsws_error' }, `读取会话列表失败：${sessionsError}`))
   }
-  const activeContent = content.query === normalized ? content : { query: normalized, status: 'loading' as const, items: [] }
+  const contentRequestKey = `${normalized}\u0000${contentType}`
+  const activeContent = content.query === contentRequestKey ? content : { query: contentRequestKey, status: 'loading' as const, items: [] }
   if (mode === 'title') {
     if (sessions === null) {
       children.push(createElement('div', { key: 'loading', className: 'dsws_status' }, '正在读取会话列表…'))
@@ -310,6 +329,14 @@ function SwitchPanel({
           onChange: (e: { target: { value: string } }) => setQuery(e.target.value),
         }),
       ]),
+      mode === 'content' && createElement('div', { key: 'chips', className: 'dsws_chips', role: 'group', 'aria-label': '内容类型筛选' },
+        CONTENT_TYPE_CHIPS.map(chip => createElement('button', {
+          key: chip.id,
+          type: 'button',
+          className: `dsws_chip${contentType === chip.id ? ' dsws_chipActive' : ''}`,
+          'aria-pressed': contentType === chip.id,
+          onClick: () => { setContentType(chip.id) },
+        }, chip.label))),
       children,
     ]),
   ]), document.body)
@@ -379,6 +406,8 @@ function typeLabel(type: string): string {
   switch (type) {
     case 'user/message': return '用户'
     case 'assistant/message': return '回复'
+    case 'tool/call': return '工具调用'
+    case 'tool/result': return '工具结果'
     default: return type
   }
 }

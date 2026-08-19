@@ -112,11 +112,26 @@ const MAX_BODY_BYTES = 1 << 20
 /** Default maximum sessions returned by one content search. */
 const DEFAULT_LIMIT = 20
 
-/** Content search includes only current-surface user/assistant messages. */
-const CONTENT_EVENT_FILTERS = [
-  { kind: 'type', values: ['user/message', 'assistant/message'] },
-  { kind: 'surface', values: ['current'] },
-]
+/** Coarse type-filter buckets mapped onto raw session event types. */
+export type SwitchContentType = 'all' | 'user' | 'reply' | 'tool'
+
+/** Event types included when the coarse filter is `all`. */
+const ALL_CONTENT_TYPES: readonly string[] = ['user/message', 'assistant/message', 'tool/call', 'tool/result']
+
+/** Coarse filter → raw event types. */
+const CONTENT_TYPE_GROUPS: Readonly<Record<Exclude<SwitchContentType, 'all'>, readonly string[]>> = {
+  user: ['user/message'],
+  reply: ['assistant/message'],
+  tool: ['tool/call', 'tool/result'],
+}
+
+/** Content search includes only current-surface messages of the requested types. */
+function contentEventFilters(types: readonly string[]): readonly unknown[] {
+  return [
+    { kind: 'type', values: [...new Set(types)] },
+    { kind: 'surface', values: ['current'] },
+  ]
+}
 
 /** Normalize a Host-header authority, or undefined when unparsable. */
 function parseAuthority(authority: string): URL | undefined {
@@ -236,19 +251,36 @@ async function contentSearch(
   ctx: Context,
   payload: unknown,
 ): Promise<{ ok: boolean; items?: unknown[]; error?: string }> {
-  const record = payload as { query?: unknown; limit?: unknown } | null
+  const record = payload as { query?: unknown; limit?: unknown; types?: unknown } | null
   const query = typeof record?.query === 'string' ? record.query.trim() : ''
   if (query === '') return { ok: false, error: '缺少 query' }
   const requestedLimit = typeof record?.limit === 'number' && Number.isSafeInteger(record.limit)
     ? record.limit
     : DEFAULT_LIMIT
   const limit = Math.min(Math.max(1, requestedLimit), 100)
+  // Coarse type filter: explicit list wins; absent/empty falls back to the
+  // official sidebar behavior (user + reply only).
+  let types: readonly string[]
+  if (Array.isArray(record?.types) && record.types.length > 0) {
+    const picked = new Set<SwitchContentType>()
+    for (const entry of record.types) {
+      if (entry === 'all') picked.add('all')
+      else if (entry === 'user' || entry === 'reply' || entry === 'tool') picked.add(entry)
+    }
+    types = picked.has('all')
+      ? ALL_CONTENT_TYPES
+      : picked.size === 0
+        ? ALL_CONTENT_TYPES
+        : [...picked].flatMap(entry => CONTENT_TYPE_GROUPS[entry as Exclude<SwitchContentType, 'all'>])
+  } else {
+    types = ['user/message', 'assistant/message']
+  }
   const sessionQuery = ctx.get('sessionQuery') as SwitchSessionQuery | undefined
   if (sessionQuery === undefined) return { ok: false, error: 'sessionQuery 服务不可用' }
   try {
     const page = await sessionQuery.searchSessions({
       query,
-      eventFilters: CONTENT_EVENT_FILTERS,
+      eventFilters: contentEventFilters(types),
       limit,
     })
     const titles = await titleMap(sessionQuery, page.items.map(hit => hit.header.id))
