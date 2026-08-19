@@ -1,0 +1,11 @@
+# dsh-switch-search bundle patch
+#
+# When installed through the official CLI —
+#
+#   dsh plugin --profile <name> add dsh-switch-search
+#
+# — the command appends `dsh-switch-search` to the bundle stack, and the
+# profile boot merges THIS patch (a single `insert` of the plugin row).
+- insert:
+    - id: dsh-switch-search
+      name: 'dsh-switch-search'
