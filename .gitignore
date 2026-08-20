@@ -1,3 +1,9 @@
+# Dependencies
 node_modules/
-lib/
+
+# Build output
+# lib/ is committed so git-install works without a build step
+*.tgz
+
+# Logs
 *.log
