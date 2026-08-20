@@ -642,6 +642,7 @@ export function apply(ctx: Context): void {
     }
     slots.inject('settings.general.item', () => slots.register({
       name: 'settings.general.item',
+      id: 'dsh-switch-search',
       key: SWITCH_SEARCH_SETTINGS_NAMESPACE,
       order: 100,
       store: switchSearchStore,
