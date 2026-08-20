@@ -54,19 +54,23 @@ profile 的 `cordis.patch.yml` 或 overlay 中覆盖：
 
 **前置**：已装好 DSH（`dsh web` 能正常运行），并已按上文启用内容搜索索引。
 
-### 稳定基线（master）
+> 仓库已提交 `lib/` 构建产物（`.gitignore` 不再忽略），从 git 安装**无需任何额外 flag 或本地构建**——标准 `add` 命令即可，`lib/` 会随仓库拉取。
+
+### 稳定版本（推荐 release-v0.1.0）
 
 ```bash
-dsh plugin --profile web add github:drscrewdriver/dsh-switch-search#master
+dsh plugin --profile web add github:drscrewdriver/dsh-switch-search#release-v0.1.0
 ```
 
-### 类型筛选 + 索引进口（feat/type-filter-search）
+### 其他分支
 
 ```bash
+# 稳定基线
+dsh plugin --profile web add github:drscrewdriver/dsh-switch-search#master
+
+# 最新开发（类型筛选 + 设置页索引进口）
 dsh plugin --profile web add github:drscrewdriver/dsh-switch-search#feat/type-filter-search
 ```
-
-> 直接使用仓库已提交的 `lib/` 构建产物，无需本地构建。
 
 ### 重启生效
 
@@ -74,13 +78,13 @@ dsh plugin --profile web add github:drscrewdriver/dsh-switch-search#feat/type-fi
 bash ~/.dsh/profiles/web/node_modules/dsh-switch-search/restart-dsh-web.sh
 ```
 
-装完侧边栏底部出现 **"搜索"** 按钮；设置 → 通用出现 **"会话搜索"** 配置行（feat 分支）。
+装完侧边栏底部出现 **"搜索"** 按钮；设置 → 通用出现 **"会话搜索"** 配置行（feat/类型筛选/索引进口 分支）。
 
 ## 从源码安装 / 开发调试
 
 ```bash
 git clone git@github.com:drscrewdriver/dsh-switch-search.git ~/Code/dsh-switch-search
-cd ~/Code/dsh-switch-search && git checkout feat/type-filter-search   # 或 master
+cd ~/Code/dsh-switch-search && git checkout release-v0.1.0   # 或 master / feat/type-filter-search
 pnpm install && pnpm build
 
 # 编辑 ~/.dsh/profiles/web/package.json 的 dependencies：
@@ -93,7 +97,15 @@ cd ~/.dsh/profiles/web && pnpm install
 bash ~/Code/dsh-switch-search/restart-dsh-web.sh
 ```
 
-**更新**：`git pull && pnpm install && pnpm build` → `bash ~/Code/dsh-switch-search/restart-dsh-web.sh`。
+**更新**：`git pull && pnpm install && pnpm build` → `bash ~/Code/dsh-switch-search/restart-dsh-web.sh`。若用 GitHub 直装，重新 `dsh plugin add ...#<ref>` 即可。
+
+## 分支说明
+
+| 分支 | 用途 |
+|---|---|
+| `master` | 稳定基线（标题/内容切换） |
+| `feat/type-filter-search` | 开发分支（类型筛选 + 设置页索引进口 + 索引可用性探测） |
+| `release-v0.1.0` | 从已验收的开发状态派生的**稳定可装版本**，含 lib/ 构建产物 |
 
 ## 实现说明
 

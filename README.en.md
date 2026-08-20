@@ -56,19 +56,24 @@ instead of a bare error.
 
 **Prereq**: DSH installed (`dsh web` runs) and the content-search index enabled as above.
 
-### Stable baseline (master)
+> The repo commits the `lib/` build artifacts (`.gitignore` no longer ignores them), so
+> a git install needs **no extra flag and no local build** — plain `add` pulls `lib/` with the tree.
+
+### Stable version (recommended release-v0.1.0)
 
 ```bash
-dsh plugin --profile web add github:drscrewdriver/dsh-switch-search#master
+dsh plugin --profile web add github:drscrewdriver/dsh-switch-search#release-v0.1.0
 ```
 
-### Type filter + index entry (feat/type-filter-search)
+### Other branches
 
 ```bash
+# Stable baseline
+dsh plugin --profile web add github:drscrewdriver/dsh-switch-search#master
+
+# Latest development (type filter + settings index entry)
 dsh plugin --profile web add github:drscrewdriver/dsh-switch-search#feat/type-filter-search
 ```
-
-> Uses the committed `lib/` build artifacts directly; no local build needed.
 
 ### Restart to apply
 
@@ -77,13 +82,13 @@ bash ~/.dsh/profiles/web/node_modules/dsh-switch-search/restart-dsh-web.sh
 ```
 
 After install a **"Search"** button appears at the sidebar footer; Settings → General gains
-the **"Session Search"** row (feat branch).
+the **"Session Search"** row (feat / release branches).
 
 ## From source / development
 
 ```bash
 git clone git@github.com:drscrewdriver/dsh-switch-search.git ~/Code/dsh-switch-search
-cd ~/Code/dsh-switch-search && git checkout feat/type-filter-search   # or master
+cd ~/Code/dsh-switch-search && git checkout release-v0.1.0   # or master / feat/type-filter-search
 pnpm install && pnpm build
 
 # Edit ~/.dsh/profiles/web/package.json dependencies:
@@ -97,6 +102,15 @@ bash ~/Code/dsh-switch-search/restart-dsh-web.sh
 ```
 
 **Update**: `git pull && pnpm install && pnpm build` → `bash ~/Code/dsh-switch-search/restart-dsh-web.sh`.
+For a GitHub install, just re-run `dsh plugin add ...#<ref>`.
+
+## Branch map
+
+| Branch | Purpose |
+|---|---|
+| `master` | Stable baseline (title/content toggle) |
+| `feat/type-filter-search` | Development (type filter + settings index entry + availability probe) |
+| `release-v0.1.0` | Stable installable version derived from the validated dev state, ships `lib/` |
 
 ## Implementation notes
 
