@@ -26,23 +26,12 @@ A cordis client + host plugin assembled via the `dsh plugin` command and a bundl
 
 ## UI preview
 
-Entry at the sidebar footer and the floating panel layout:
+Entry at the sidebar  and the setting panel layout:
 
-```text
-┌─ Sidebar ───────────────────────────────┐
-│ ▸ Session search  （sidebar.footer.action）
-│        ┌─ Search panel (portalled) ──────────┐
-│        │ [Title|Content]  [🔍 Search…]        │
-│        │ [All|User|Reply|Tool] ← type filter │
-│        │ ┌─ Results ─────────────────────┐ │
-│        │ │ 📄 Session title one          │ │
-│        │ │    matching snippet…          │ │
-│        │ │ 📄 Session title two · tool   │ │
-│        │ │    bash -c "xxx"              │ │
-│        │ └──────────────────────────────┘ │
-│        └─────────────────────────────────┘│
-└──────────────────────────────────────────┘
-```
+侧边栏搜索入口与设置面板布局示意：
+<img width="287" height="835" alt="image" src="https://github.com/user-attachments/assets/fc714858-aaf9-4b5b-ad83-a3f1537f6116" />
+<img width="844" height="813" alt="image" src="https://github.com/user-attachments/assets/d3ed5d20-9737-4b9b-a7bb-74162513f7c7" />
+
 
 ## Underlying content search: the DSH FTS5 derived index
 
