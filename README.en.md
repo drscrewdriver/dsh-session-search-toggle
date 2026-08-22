@@ -78,6 +78,8 @@ bash ~/.dsh/profiles/web/node_modules/dsh-switch-search/restart-dsh-web.sh
 
 After install a **"Search"** button appears at the sidebar footer; Settings → General gains the **"Session Search"** settings row.
 
+> ⚠️ **GitHub reachability**: installing via github: requires access to github.com; if your network is restricted, set up a working proxy or mirror first, otherwise add may stall while fetching.
+
 ## Development
 
 ```sh

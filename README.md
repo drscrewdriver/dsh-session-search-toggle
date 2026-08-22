@@ -77,6 +77,8 @@ bash ~/.dsh/profiles/web/node_modules/dsh-switch-search/restart-dsh-web.sh
 
 装完侧边栏底部出现 **"搜索"** 按钮；设置 → 通用出现 **"会话搜索"** 配置行。
 
+> ⚠️ **GitHub 网络可达性**：github: 直装需要能连通 github.com；网络受限时请先配置可用代理或镜像加速，否则 add 会在拉取阶段卡住。
+
 ## 开发
 
 ```sh
