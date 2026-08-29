@@ -627,10 +627,11 @@ export function apply(ctx: Context): void {
     ? (): void => {}
     : (sessionId: string): void => { sessions.open(sessionId) }
 
-  slots.inject('sidebar.footer.action', () => slots.register(
-    { name: 'sidebar.footer.action', id: 'dsh-switch-search', order: 10 },
-    (props: SwitchFooterProps) => createElement(SwitchFooter, { ...props, open }),
-  ))
+  // [disabled] 搜索按钮 UI 暂时移除——保留 host API + 设置面板，侧边栏入口关闭。
+  // slots.inject('sidebar.footer.action', () => slots.register(
+  //   { name: 'sidebar.footer.action', id: 'dsh-switch-search', order: 10 },
+  //   (props: SwitchFooterProps) => createElement(SwitchFooter, { ...props, open }),
+  // ))
 
   // The General settings row mirrors the switch-search namespace section.
   const settingsScope = ctx.get('settingsScope') as SwitchSettingsScope<SwitchSearchConfig> | undefined
