@@ -1,5 +1,5 @@
 /**
- * Pure shared config surface for dsh-switch-search.
+ * Pure shared config surface for dsh-session-search-toggle.
  *
  * Kept schemastery-free so the browser bundle can import it directly (the
  * host half owns the schemastery schema in src/index.ts). The settings

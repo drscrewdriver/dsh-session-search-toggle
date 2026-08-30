@@ -1,5 +1,5 @@
 {
-  "id": "dsh-external/dsh-switch-search",
+  "id": "dsh-external/dsh-session-search-toggle",
   "version": "0.1.0",
   "main": "./lib/index.mjs",
   "description": "侧边栏会话搜索增强：标题搜索 ↔ 内容搜索一键切换，内容按会话聚合展示标题与片段。",

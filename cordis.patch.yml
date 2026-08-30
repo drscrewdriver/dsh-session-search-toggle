@@ -1,11 +1,11 @@
-# dsh-switch-search bundle patch
+# dsh-session-search-toggle bundle patch
 #
 # When installed through the official CLI —
 #
-#   dsh plugin --profile <name> add dsh-switch-search
+#   dsh plugin --profile <name> add dsh-session-search-toggle
 #
-# — the command appends `dsh-switch-search` to the bundle stack, and the
+# — the command appends `dsh-session-search-toggle` to the bundle stack, and the
 # profile boot merges THIS patch (a single `insert` of the plugin row).
 - insert:
-    - id: dsh-switch-search
-      name: 'dsh-switch-search'
+    - id: dsh-session-search-toggle
+      name: 'dsh-session-search-toggle'

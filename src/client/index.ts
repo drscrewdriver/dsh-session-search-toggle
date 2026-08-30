@@ -1,5 +1,5 @@
 /**
- * dsh-switch-search client half: a `sidebar.footer.action` entry that opens a
+ * dsh-session-search-toggle client half: a `sidebar.footer.action` entry that opens a
  * floating search panel over the sidebar. The panel has two modes:
  *
  * - 标题搜索 — lists every session (title + cwd) from the host route and
@@ -199,10 +199,10 @@ const CSS = `
 /** Inject the plugin stylesheet once per activation (removed on disposal). */
 function injectStyles(): () => void {
   if (typeof document === 'undefined') return () => {}
-  if (document.querySelector('style[data-plugin-css="dsw-switch-search/styles"]') !== null) return () => {}
+  if (document.querySelector('style[data-plugin-css="dsw-session-search-toggle/styles"]') !== null) return () => {}
   const tag = document.createElement('style')
-  tag.dataset.plugin = 'dsh-switch-search'
-  tag.dataset.pluginCss = 'dsw-switch-search/styles'
+  tag.dataset.plugin = 'dsh-session-search-toggle'
+  tag.dataset.pluginCss = 'dsw-session-search-toggle/styles'
   tag.textContent = CSS
   document.head.appendChild(tag)
   return () => {
@@ -619,7 +619,7 @@ export const inject = ['slots']
  * @param ctx - client plugin context (slots, sessions, settingsScope).
  */
 export function apply(ctx: Context): void {
-  ctx.effect(() => injectStyles(), 'dsh-switch-search: stylesheet')
+  ctx.effect(() => injectStyles(), 'dsh-session-search-toggle: stylesheet')
   const slots = ctx.get('slots') as SwitchSlotsService | undefined
   if (slots === undefined) return
   const sessions = ctx.get('sessions') as SwitchSessionsService | undefined
@@ -629,7 +629,7 @@ export function apply(ctx: Context): void {
 
   // [disabled] 搜索按钮 UI 暂时移除——保留 host API + 设置面板，侧边栏入口关闭。
   // slots.inject('sidebar.footer.action', () => slots.register(
-  //   { name: 'sidebar.footer.action', id: 'dsh-switch-search', order: 10 },
+  //   { name: 'sidebar.footer.action', id: 'dsh-session-search-toggle', order: 10 },
   //   (props: SwitchFooterProps) => createElement(SwitchFooter, { ...props, open }),
   // ))
 
@@ -643,7 +643,7 @@ export function apply(ctx: Context): void {
     }
     slots.inject('settings.general.item', () => slots.register({
       name: 'settings.general.item',
-      id: 'dsh-switch-search',
+      id: 'dsh-session-search-toggle',
       key: SWITCH_SEARCH_SETTINGS_NAMESPACE,
       order: 100,
       store: switchSearchStore,
@@ -655,7 +655,7 @@ export function apply(ctx: Context): void {
           setDefaultMode: (value: SwitchSearchConfig['defaultMode']): void => void scope.set('defaultMode', value),
         } satisfies SwitchSearchSettingsInjected
       },
-    }, SwitchSettingsRow), 'dsh-switch-search: general settings row')
-    ctx.effect(() => scope.subscribe(() => push(scope.getSnapshot())), 'dsh-switch-search: settings watch')
+    }, SwitchSettingsRow), 'dsh-session-search-toggle: general settings row')
+    ctx.effect(() => scope.subscribe(() => push(scope.getSnapshot())), 'dsh-session-search-toggle: settings watch')
   }
 }

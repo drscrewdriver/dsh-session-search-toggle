@@ -1,12 +1,12 @@
 /**
- * tsdown build for dsh-switch-search:
+ * tsdown build for dsh-session-search-toggle:
  *
  * - `lib/index.mjs` — the host half (ESM node): one fenced HTTP route
  *   `/switch-search/api` that lists sessions (title search) and searches
  *   message content through `sessionQuery` (FTS5), returning session-level
  *   hits with the strongest snippet.
  * - `lib/client.js` — the browser client bundle (CJS closure factory),
- *   registering with the package-name id `dsh-switch-search` (the
+ *   registering with the package-name id `dsh-session-search-toggle` (the
  *   client-modules compose keys on the package name; keep it in sync with
  *   package.json `name`). It mounts a `sidebar.footer.action` entry whose
  *   panel toggles 标题搜索 / 内容搜索.
@@ -89,5 +89,5 @@ function clientBundle(pluginId: string, entryFile: string): UserConfig {
 
 export default [
   hostConfig,
-  clientBundle('dsh-switch-search', 'client.js'),
+  clientBundle('dsh-session-search-toggle', 'client.js'),
 ]

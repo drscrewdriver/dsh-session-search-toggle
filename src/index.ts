@@ -1,5 +1,5 @@
 /**
- * dsh-switch-search host half: one fenced HTTP route `/switch-search/api`
+ * dsh-session-search-toggle host half: one fenced HTTP route `/switch-search/api`
  * that drives the sidebar search panel's two modes:
  *
  * - `list-sessions` — the title-search corpus: every session id + folded
@@ -110,7 +110,7 @@ declare module 'cordis' {
 }
 
 /** Stable plugin name for the cordis row. */
-export const name = 'dsh-switch-search'
+export const name = 'dsh-session-search-toggle'
 
 /** Services required before mounting: the web server routes and the trust list. */
 export const inject = ['webServer', 'webRuntime']
@@ -435,7 +435,7 @@ export function apply(ctx: Context): void {
         writeJson(res, 400, { ok: false, error: err instanceof Error ? err.message : String(err) })
       }
     },
-  }), 'dsh-switch-search: /switch-search/api route')
+  }), 'dsh-session-search-toggle: /switch-search/api route')
 
   // Register the runtime-adjustable settings namespace (the composition entry
   // is the base; the settings section layers on top). The panel and the

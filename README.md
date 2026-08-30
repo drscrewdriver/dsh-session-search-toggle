@@ -9,7 +9,7 @@
   <img alt="Public" src="https://img.shields.io/badge/status-public-7da1de?style=flat-square">
 </p>
 
-# dsh-switch-search
+# dsh-session-search-toggle
 
 > DSH web 侧边栏**会话搜索增强**：在侧边栏底部新增 **"搜索"** 入口，浮层面板一键在 **标题搜索 ↔ 内容搜索** 间切换；内容模式按**会话聚合**展示标题与命中片段，并按 **用户 / 回复 / 工具** 分类筛选。
 
@@ -63,16 +63,16 @@
 
 ```sh
 # 方式一：从 GitHub 直装（推荐）——仓库已提交 lib/，无需本地构建
-dsh plugin --profile web add github:drscrewdriver/dsh-switch-search#release-v0.1.0   # 稳定版
-dsh plugin --profile web add github:drscrewdriver/dsh-switch-search#master          # 基线
-dsh plugin --profile web add github:drscrewdriver/dsh-switch-search#feat/type-filter-search  # 最新开发
+dsh plugin --profile web add github:drscrewdriver/dsh-session-search-toggle#release-v0.1.0   # 稳定版
+dsh plugin --profile web add github:drscrewdriver/dsh-session-search-toggle#master          # 基线
+dsh plugin --profile web add github:drscrewdriver/dsh-session-search-toggle#feat/type-filter-search  # 最新开发
 
 # 方式二：本地路径/源码组装（见"开发"章节）
 
 # 重启 dsh web —— 必做！运行中实例不热载 bundle 层
 dsh web
 # 或用随包脚本
-bash ~/.dsh/profiles/web/node_modules/dsh-switch-search/restart-dsh-web.sh
+bash ~/.dsh/profiles/web/node_modules/dsh-session-search-toggle/restart-dsh-web.sh
 ```
 
 装完侧边栏底部出现 **"搜索"** 按钮；设置 → 通用出现 **"会话搜索"** 配置行。
@@ -130,7 +130,7 @@ src/
 | [dsh-input-traffic](https://github.com/drscrewdriver/dsh-input-traffic) | DSH Web GUI 忙时输入队列：三档交通管制，拖拽重排，会话冻结 |
 | [dsh-thinking-levels](https://github.com/drscrewdriver/dsh-thinking-levels) | 逐轮 reasoning_effort 控制：Auto 智能调度或手动固定档位 |
 | [dsh-seatbelt-sandbox](https://github.com/drscrewdriver/dsh-seatbelt-sandbox) | macOS Seatbelt 沙箱适配器：libsandbox 原生 loader，接替弃用的 sandbox-exec |
-| **[dsh-switch-search](https://github.com/drscrewdriver/dsh-switch-search)** | 侧边栏会话搜索增强：标题/内容切换，按用户/回复/工具筛选 |
+| **[dsh-session-search-toggle](https://github.com/drscrewdriver/dsh-session-search-toggle)** | 侧边栏会话搜索增强：标题/内容切换，按用户/回复/工具筛选 |
 
 ## License
 

@@ -9,7 +9,7 @@
   <img alt="Public" src="https://img.shields.io/badge/status-public-7da1de?style=flat-square">
 </p>
 
-# dsh-switch-search
+# dsh-session-search-toggle
 
 > Sidebar **session-search enhancement** for DSH web: adds a **"Search"** entry at the sidebar footer whose floating panel toggles between **title search ↔ content search**; content mode groups results **by session** (title + snippet) and filters by **user / reply / tool**.
 
@@ -64,16 +64,16 @@ Then restart DSH web. If you do not enable it, the plugin's content mode shows s
 
 ```sh
 # Option 1: install directly from GitHub (recommended) — lib/ is committed, no local build
-dsh plugin --profile web add github:drscrewdriver/dsh-switch-search#release-v0.1.0   # stable
-dsh plugin --profile web add github:drscrewdriver/dsh-switch-search#master          # baseline
-dsh plugin --profile web add github:drscrewdriver/dsh-switch-search#feat/type-filter-search  # latest dev
+dsh plugin --profile web add github:drscrewdriver/dsh-session-search-toggle#release-v0.1.0   # stable
+dsh plugin --profile web add github:drscrewdriver/dsh-session-search-toggle#master          # baseline
+dsh plugin --profile web add github:drscrewdriver/dsh-session-search-toggle#feat/type-filter-search  # latest dev
 
 # Option 2: assemble from a local path / source (see Development)
 
 # Restart dsh web — required! A running instance does not hot-load the bundle layer
 dsh web
 # or use the bundled script
-bash ~/.dsh/profiles/web/node_modules/dsh-switch-search/restart-dsh-web.sh
+bash ~/.dsh/profiles/web/node_modules/dsh-session-search-toggle/restart-dsh-web.sh
 ```
 
 After install a **"Search"** button appears at the sidebar footer; Settings → General gains the **"Session Search"** settings row.
@@ -131,7 +131,7 @@ This project is one of the DSH plugins maintained by [drscrewdriver](https://git
 | [dsh-input-traffic](https://github.com/drscrewdriver/dsh-input-traffic) | Busy-time input queue: three-tier traffic control, drag-to-reorder, session freeze |
 | [dsh-thinking-levels](https://github.com/drscrewdriver/dsh-thinking-levels) | Per-round reasoning_effort control: Auto scheduling or manual wire level |
 | [dsh-seatbelt-sandbox](https://github.com/drscrewdriver/dsh-seatbelt-sandbox) | macOS Seatbelt sandbox adapter: native libsandbox loader replacing deprecated sandbox-exec |
-| **[dsh-switch-search](https://github.com/drscrewdriver/dsh-switch-search)** | Session content search sidebar: title/content toggle, type-filter by user/reply/tool |
+| **[dsh-session-search-toggle](https://github.com/drscrewdriver/dsh-session-search-toggle)** | Session content search sidebar: title/content toggle, type-filter by user/reply/tool |
 
 ## License
 

@@ -1,8 +1,13 @@
 {
-  "name": "dsh-switch-search",
+  "name": "dsh-session-search-toggle",
   "version": "0.1.0",
   "description": "DSH web 侧边栏会话搜索增强：标题搜索 ↔ 内容搜索一键切换，内容搜索按会话聚合展示标题与命中片段。",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/drscrewdriver/dsh-session-search-toggle.git"
+  },
+  "homepage": "https://github.com/drscrewdriver/dsh-session-search-toggle",
   "main": "lib/index.mjs",
   "types": "lib/types/index.d.ts",
   "exports": {
